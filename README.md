@@ -22,7 +22,7 @@ Close and Reopen your Terminal/PowerShell: After installing Rust, the changes to
 
 Then try running ```cargo run``` again in your project directory. (The first time it runs it will download the necessary dependencies)
 
-It will ask you to select an audio device in the console by typing a number.
+It will ask you to select an audio device in the console by typing a number. (For example, type 1 and press enter)
 
 Once you type in a number two windows should open up, the audio visualizer and control panel.
 
