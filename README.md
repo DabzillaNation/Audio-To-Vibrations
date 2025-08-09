@@ -1,0 +1,35 @@
+# Credits
+This is based on: https://github.com/abstract-creations/subwoofer
+
+# Description
+It converts desktop audio into vibration commands for sex toys through initface.
+
+# Usage Guide
+Navigate to the project directory: Open your terminal or command prompt and change your current directory to the root of your Rust project (the directory containing Cargo.toml, Cargo.lock, and the src folder).
+
+Run the project: Once you are in the project's root directory, execute the following command:
+```cargo run```
+
+if you don't have rust installed you will get this error:
+```cargo : The term 'cargo' is not recognized as the name of a cmdlet, function, script file, or operable program. ```
+
+Go to the official Rust website: https://www.rust-lang.org/tools/install
+Follow the on-screen instructions. It will usually ask you to proceed with the default installation, which is generally fine. This process will install Rust, Cargo, and set up the necessary environment variables.
+
+Close and Reopen your Terminal/PowerShell: After installing Rust, the changes to the PATH variable might only take effect in new terminal sessions.
+
+Then try running ```cargo run``` again in your project directory.
+
+It will ask you to select an audio device in the console by typing a number.
+
+Once you type in a number two windows should open up, the audio visualizer and control panel.
+
+The visualizer just lets you see the audio waveform and you can edit various settings in realtime from the control panel.
+
+# Added Features:
+- More seamless connection, continuously rescans for initface on connection loss
+- Control Panel
+-- slider for vibration intensity
+-- slider for minimum instruction delay
+-- slider for threshold cutoff value
+-- toggle for low pass filter
