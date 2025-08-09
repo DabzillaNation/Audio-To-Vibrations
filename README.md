@@ -29,7 +29,7 @@ The visualizer just lets you see the audio waveform and you can edit various set
 # Added Features:
 - More seamless connection, continuously rescans for initface on connection loss
 - Control Panel
--- slider for vibration intensity
--- slider for minimum instruction delay
--- slider for threshold cutoff value
--- toggle for low pass filter
+  -  slider for vibration intensity
+  - slider for minimum instruction delay
+  - slider for threshold cutoff value
+  - toggle for low pass filter
