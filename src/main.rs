@@ -302,7 +302,7 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>) -> Result<()> {
             "Live Audio View",
             None, None, None, None,
             "time (seconds)",
-            "Amplitude",
+            "Amplitude (After Processing)",
             AudioDevAndCfg::new(Some(default_out_dev), Some(default_out_config)),
             TransformFn::Basic(audio_transform_fn), // Pass our processing function here.
         );
