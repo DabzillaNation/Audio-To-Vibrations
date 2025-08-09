@@ -5,6 +5,8 @@ This is based on: https://github.com/abstract-creations/subwoofer
 It converts desktop audio into vibration commands for sex toys through initface.
 
 # Usage Guide
+Clone and Extract this repo.
+
 Navigate to the project directory: Open your terminal or command prompt and change your current directory to the root of your Rust project (the directory containing Cargo.toml, Cargo.lock, and the src folder).
 
 Run the project: Once you are in the project's root directory, execute the following command:
