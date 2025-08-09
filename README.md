@@ -35,3 +35,7 @@ The visualizer just lets you see the audio waveform and you can edit various set
   - slider for minimum instruction delay
   - slider for threshold cutoff value
   - toggle for low pass filter
+
+<img width="1264" height="749" alt="image" src="https://github.com/user-attachments/assets/05cdc0f9-d325-4147-9b24-7dea8c296cd0" />
+<img width="439" height="202" alt="image" src="https://github.com/user-attachments/assets/cd1c31b9-f9d0-4fc8-a427-b0066cb36e30" />
+
