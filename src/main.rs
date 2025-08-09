@@ -6,7 +6,7 @@
 //==================================================================================
 
 // 'anyhow::Result' is used for a more ergonomic and simple way of handling errors.
-use anyhow::Result; 
+use anyhow::Result;
 // These two imports are from the 'audio_visualizer' crate. They help us create
 // a window that displays the audio waveform in real-time.
 use audio_visualizer::dynamic::live_input::AudioDevAndCfg;
@@ -328,13 +328,21 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>) -> Result<()> {
         time::sleep(Duration::from_secs(2)).await; // Scan for a couple of seconds.
         client.stop_scanning().await?;
 
-        // Check if any devices were found.
-        let Some(client_device) = client.devices().first() else {
+        // ******** THE FIX IS HERE ********
+        // We must first store the list of devices in a variable (`all_devices`).
+        // This ensures the list itself lives long enough for us to borrow from it.
+        let all_devices = client.devices();
+
+        // Now, we can safely get the first item from `all_devices`. `client_device` will
+        // be a reference to an item inside `all_devices`, which is perfectly fine
+        // because `all_devices` is still in scope.
+        let Some(client_device) = all_devices.first() else {
             eprintln!("[Buttplug] No device found. Retrying in 10 seconds...");
             let _ = client.disconnect().await;
             time::sleep(Duration::from_secs(10)).await;
             continue 'reconnection_loop;
         };
+        // ******** END OF FIX ********
 
         println!("[Buttplug] Device connected: {}", client_device.name());
         println!("[Vibration] Starting vibration loop...");
