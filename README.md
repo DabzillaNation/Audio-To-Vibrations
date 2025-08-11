@@ -28,6 +28,8 @@ Once you type in a number two windows should open up, the audio visualizer and c
 
 The visualizer just lets you see the audio waveform and you can edit various settings in realtime from the control panel.
 
+Open initface and start the server to communicate with your device.
+
 # Added Features:
 - More seamless connection, continuously rescans for initface on connection loss
 - Control Panel
