@@ -166,8 +166,6 @@ impl eframe::App for ControlPanelApp {
             // It's bound to the `use_lowpass_filter` boolean field.
             ui.toggle_value(&mut settings.use_lowpass_filter, "Use Low-Pass Filter");
 
-            ui.separator();
-
             // Add the reset button. When clicked, it replaces the current settings
             // with a new instance of the default settings.
             if ui.button("Reset to Defaults").clicked() {
@@ -210,7 +208,7 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
     // 3. Set up the native window options for our GUI control panel.
     let native_options = eframe::NativeOptions {
         // Increased height to fit the new smoothing slider comfortably.
-        viewport: egui::ViewportBuilder::default().with_inner_size([440.0, 240.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([440.0, 200.0]),
         ..Default::default()
     };
 
