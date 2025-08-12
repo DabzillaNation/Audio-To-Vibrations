@@ -186,7 +186,7 @@ impl eframe::App for ControlPanelApp {
                 if ui.button("🔄").on_hover_text("Reset Decay Time").clicked() {
                     settings.smoothing_ms = default_settings.smoothing_ms;
                 }
-                ui.add(egui::Slider::new(&mut settings.smoothing_ms, 0.0..=2000.0).text("Decay Time").suffix(" ms"));
+                ui.add(egui::Slider::new(&mut settings.smoothing_ms, 0.0..=2000.0).text("Smooth Decay Time").suffix(" ms"));
             });
             
             ui.separator();
