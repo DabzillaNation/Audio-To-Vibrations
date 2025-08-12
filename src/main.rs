@@ -150,11 +150,19 @@ impl eframe::App for ControlPanelApp {
             ui.add(egui::Slider::new(&mut settings.intensity, 0.0..=1000.0).text("Vibration Intensity"));
             ui.add(egui::Slider::new(&mut settings.delay_ms, 5..=200).text("Instruction Delay (ms)").suffix(" ms"));
             ui.add(egui::Slider::new(&mut settings.threshold, 0.0..=1.0).text("Minimum Threshold"));
-            
+
             // This is the toggle switch for the low-pass filter.
             // It's bound to the `use_lowpass_filter` boolean field.
             ui.toggle_value(&mut settings.use_lowpass_filter, "Use Low-Pass Filter");
 
+            ui.separator();
+
+            // Add the reset button. When clicked, it replaces the current settings
+            // with a new instance of the default settings.
+            if ui.button("Reset to Defaults").clicked() {
+                *settings = AppSettings::default();
+            }
+            
             ui.separator();
             ui.label("Close this window and the visualizer to exit.");
         });
@@ -190,7 +198,8 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
 
     // 3. Set up the native window options for our GUI control panel.
     let native_options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([440.0, 170.0]), // Increased height for the toggle
+        // Increased height to fit the new reset button comfortably.
+        viewport: egui::ViewportBuilder::default().with_inner_size([440.0, 210.0]),
         ..Default::default()
     };
     
