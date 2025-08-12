@@ -43,5 +43,5 @@ Open initface and start the server to communicate with your device.
 
 <img width="1279" height="742" alt="image" src="https://github.com/user-attachments/assets/08ecc4ac-2066-4abe-ba8a-abc6af6dcbd7" />
 
-<img width="439" height="202" alt="image" src="https://github.com/user-attachments/assets/cd1c31b9-f9d0-4fc8-a427-b0066cb36e30" />
+<img width="437" height="223" alt="image" src="https://github.com/user-attachments/assets/6a67155f-93d8-48b8-9ed5-dfc87ce779b1" />
 
