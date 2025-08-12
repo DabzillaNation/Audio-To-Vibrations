@@ -43,5 +43,5 @@ Open initface and start the server, you will see debug messages in the console l
 
 <img width="1279" height="742" alt="image" src="https://github.com/user-attachments/assets/08ecc4ac-2066-4abe-ba8a-abc6af6dcbd7" />
 
-<img width="437" height="223" alt="image" src="https://github.com/user-attachments/assets/6a67155f-93d8-48b8-9ed5-dfc87ce779b1" />
+<img width="477" height="234" alt="image" src="https://github.com/user-attachments/assets/2b18cac5-6e4d-43ee-807b-3a525cf8db14" />
 
