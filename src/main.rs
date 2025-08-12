@@ -76,6 +76,11 @@ struct AudioProcessorState {
 /// that the `fn` can access from anywhere, solving the environment capture problem.
 static AUDIO_STATE: OnceLock<AudioProcessorState> = OnceLock::new();
 
+/// We need to store the last smoothed sample between calls to the audio callback.
+/// A `static Mutex` is a safe way to maintain this state across threads and function calls,
+/// especially since the callback is a `fn` pointer and cannot capture its environment.
+static LAST_SMOOTHED_SAMPLE: Mutex<f32> = Mutex::new(0.0);
+
 
 //==================================================================================
 //  APPLICATION SETTINGS STRUCT
@@ -91,6 +96,7 @@ struct AppSettings {
     delay_ms: u64,
     threshold: f64,
     use_lowpass_filter: bool, // Toggle to enable or disable the bass filter.
+    smoothing_ms: f64,        // The decay time in milliseconds.
 }
 
 /// This `impl` block provides a `default` constructor for `AppSettings`.
@@ -102,6 +108,7 @@ impl Default for AppSettings {
             delay_ms: 35,
             threshold: 0.005,
             use_lowpass_filter: true, // Default to using the filter.
+            smoothing_ms: 0.0,      // Default to a 0ms decay time.
         }
     }
 }
@@ -151,6 +158,10 @@ impl eframe::App for ControlPanelApp {
             ui.add(egui::Slider::new(&mut settings.delay_ms, 5..=200).text("Instruction Delay (ms)").suffix(" ms"));
             ui.add(egui::Slider::new(&mut settings.threshold, 0.0..=1.0).text("Minimum Threshold"));
 
+            // MODIFIED: This slider now controls the decay time in milliseconds, which is much
+            // more intuitive for the user.
+            ui.add(egui::Slider::new(&mut settings.smoothing_ms, 0.0..=200.0).text("Decay Time").suffix(" ms"));
+
             // This is the toggle switch for the low-pass filter.
             // It's bound to the `use_lowpass_filter` boolean field.
             ui.toggle_value(&mut settings.use_lowpass_filter, "Use Low-Pass Filter");
@@ -162,7 +173,7 @@ impl eframe::App for ControlPanelApp {
             if ui.button("Reset to Defaults").clicked() {
                 *settings = AppSettings::default();
             }
-            
+
             ui.separator();
             ui.label("Close this window and the visualizer to exit.");
         });
@@ -198,11 +209,11 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
 
     // 3. Set up the native window options for our GUI control panel.
     let native_options = eframe::NativeOptions {
-        // Increased height to fit the new reset button comfortably.
-        viewport: egui::ViewportBuilder::default().with_inner_size([440.0, 210.0]),
+        // Increased height to fit the new smoothing slider comfortably.
+        viewport: egui::ViewportBuilder::default().with_inner_size([440.0, 240.0]),
         ..Default::default()
     };
-    
+
     // 4. Run the eframe GUI application. This function takes over the main thread.
     // It passes the original `settings` Arc to the GUI.
     eframe::run_native(
@@ -210,7 +221,7 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
         native_options,
         Box::new(|_cc| Ok(Box::new(ControlPanelApp::new(settings)))),
     )?;
-    
+
     Ok(())
 }
 
@@ -229,9 +240,9 @@ fn audio_transform_fn(direct_values: &[f32], sampling_rate: f32) -> Vec<f32> {
     let state = AUDIO_STATE.get().expect("AUDIO_STATE not initialized");
 
     // Get a snapshot of the current settings from the GUI.
-    let (intensity, threshold, use_lowpass_filter) = {
+    let (intensity, threshold, use_lowpass_filter, smoothing_ms) = {
         let s = state.settings.lock().unwrap();
-        (s.intensity, s.threshold, s.use_lowpass_filter)
+        (s.intensity, s.threshold, s.use_lowpass_filter, s.smoothing_ms)
     };
 
     // Create a mutable copy of the incoming audio data to work with.
@@ -243,11 +254,44 @@ fn audio_transform_fn(direct_values: &[f32], sampling_rate: f32) -> Vec<f32> {
         lowpass_filter(&mut processed_values, sampling_rate, 80.0); // 80.0 Hz is a good bass cutoff.
     }
 
+    // --- MODIFIED: ASYMMETRIC SMOOTHING LOGIC (FAST ATTACK, SLOW DECAY) ---
+    // We check if smoothing_ms is meaningfully greater than zero to avoid division by zero
+    // and to disable smoothing when the user sets the slider to 0.
+    if smoothing_ms > 1.0 {
+        // Convert decay time in ms to a time constant 'tau' in seconds. This is the foundation
+        // of making the slider intuitive.
+        let tau = smoothing_ms / 1000.0;
+        
+        // Calculate the per-sample smoothing factor 'alpha' from tau and the sampling rate.
+        // The formula exp(-Δt / τ) correctly maps a linear time slider to the non-linear
+        // alpha values required for a per-sample filter. Δt here is 1.0 / sampling_rate.
+        let alpha = (-1.0 / (sampling_rate as f64 * tau)).exp() as f32;
+
+        let mut last_sample_val = LAST_SMOOTHED_SAMPLE.lock().unwrap();
+        for current_sample in processed_values.iter_mut() {
+            let new_sample;
+            // Compare the absolute values (amplitude) of the signals.
+            if current_sample.abs() > last_sample_val.abs() {
+                // FAST ATTACK: The new signal is louder. Immediately adopt its value,
+                // ignoring the previous state. This makes the vibration ramp up instantly.
+                new_sample = *current_sample;
+            } else {
+                // SLOW DECAY: The new signal is quieter. Apply the EMA formula using our calculated
+                // alpha to smoothly transition downwards from the last peak.
+                new_sample = *current_sample * (1.0 - alpha) + *last_sample_val * alpha;
+            }
+            // Update the sample in the buffer that will be sent to the visualizer.
+            *current_sample = new_sample;
+            // Update our state for the *next* sample in this batch.
+            *last_sample_val = new_sample;
+        }
+    }
+
     // --- VIBRATION VALUE CALCULATION ---
     // Take the last sample from the processed chunk as our representative value.
     let mut vibration_value = *processed_values.last().unwrap_or(&0.0) as f64;
     vibration_value = f64::abs(vibration_value); // Vibration can't be negative.
-    
+
     // Apply the threshold: if the sound is too quiet, ignore it.
     if vibration_value < threshold {
         vibration_value = 0.0;
@@ -303,7 +347,7 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>) -> Result<()> {
     let default_out_dev = select_output_dev(); // Prompts user to select an audio device.
     let default_out_config = default_out_dev.default_output_config().unwrap().config();
     println!("[Audio] Using audio device: {}", default_out_dev.name()?);
-    
+
     // Spawn another async task specifically for the audio visualizer window.
     // This lets it run independently without blocking our Buttplug logic.
     tokio::spawn(async move {
@@ -325,7 +369,7 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>) -> Result<()> {
         // Create a Buttplug client and try to connect to the server (e.g., Intiface Desktop).
         let client = ButtplugClient::new("subwoofer");
         let connector = new_json_ws_client_connector("ws://localhost:12345/buttplug");
-        
+
         if let Err(e) = client.connect(connector).await {
             eprintln!("[Buttplug] Connection failed: {}. Retrying in 5 seconds...", e);
             time::sleep(Duration::from_secs(5)).await;
