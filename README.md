@@ -32,11 +32,14 @@ Open initface and start the server to communicate with your device.
 
 # Added Features:
 - More seamless connection, continuously rescans for initface on connection loss
+- Audio Signal Smoothing
 - Control Panel
-  -  slider for vibration intensity
+  - slider for vibration intensity
   - slider for minimum instruction delay
   - slider for threshold cutoff value
+  - slider for audio smoothing value
   - toggle for low pass filter
+  - Button to reset settings to defaults
 
 <img width="1279" height="742" alt="image" src="https://github.com/user-attachments/assets/08ecc4ac-2066-4abe-ba8a-abc6af6dcbd7" />
 
