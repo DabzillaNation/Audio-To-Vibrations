@@ -143,7 +143,6 @@ impl eframe::App for ControlPanelApp {
         // Create a central panel to hold all our widgets.
         egui::CentralPanel::default().show(ctx, |ui| {
             // Some minor styling.
-            ui.style_mut().spacing.slider_width = 250.0;
             ui.heading("Vibration Controls");
             ui.separator();
 
@@ -152,23 +151,53 @@ impl eframe::App for ControlPanelApp {
             // The lock is automatically released when 'settings' goes out of scope.
             let mut settings = self.settings.lock().unwrap();
 
-            // Add the GUI widgets (sliders and a toggle switch).
-            // Each widget is bound to a field in the `AppSettings` struct.
-            ui.add(egui::Slider::new(&mut settings.intensity, 0.0..=1000.0).text("Vibration Intensity"));
-            ui.add(egui::Slider::new(&mut settings.delay_ms, 5..=200).text("Instruction Delay (ms)").suffix(" ms"));
-            ui.add(egui::Slider::new(&mut settings.threshold, 0.0..=1.0).text("Minimum Threshold"));
+            // Create a single instance of the default settings to compare against.
+            let default_settings = AppSettings::default();
 
-            // MODIFIED: This slider now controls the decay time in milliseconds, which is much
-            // more intuitive for the user.
-            ui.add(egui::Slider::new(&mut settings.smoothing_ms, 0.0..=200.0).text("Decay Time").suffix(" ms"));
+            // We use a horizontal layout to place a slider and a reset button on the same line.
+            ui.horizontal(|ui| {
+                ui.style_mut().spacing.slider_width = 250.0; // Set slider width inside the layout
+                if ui.button("🔄").on_hover_text("Reset Intensity").clicked() {
+                    settings.intensity = default_settings.intensity;
+                }
+                ui.add(egui::Slider::new(&mut settings.intensity, 0.0..=1000.0).text("Vibration Intensity"));
+            });
 
+            ui.horizontal(|ui| {
+                ui.style_mut().spacing.slider_width = 250.0;
+                if ui.button("🔄").on_hover_text("Reset Delay").clicked() {
+                    settings.delay_ms = default_settings.delay_ms;
+                }
+                ui.add(egui::Slider::new(&mut settings.delay_ms, 5..=200).text("Instruction Delay (ms)").suffix(" ms"));
+
+            });
+
+            ui.horizontal(|ui| {
+                ui.style_mut().spacing.slider_width = 250.0;
+                if ui.button("🔄").on_hover_text("Reset Threshold").clicked() {
+                    settings.threshold = default_settings.threshold;
+                }
+                ui.add(egui::Slider::new(&mut settings.threshold, 0.0..=1.0).text("Minimum Threshold"));
+
+            });
+            
+            ui.horizontal(|ui| {
+                ui.style_mut().spacing.slider_width = 250.0;
+                if ui.button("🔄").on_hover_text("Reset Decay Time").clicked() {
+                    settings.smoothing_ms = default_settings.smoothing_ms;
+                }
+                ui.add(egui::Slider::new(&mut settings.smoothing_ms, 0.0..=2000.0).text("Decay Time").suffix(" ms"));
+            });
+            
+            ui.separator();
+            
             // This is the toggle switch for the low-pass filter.
             // It's bound to the `use_lowpass_filter` boolean field.
             ui.toggle_value(&mut settings.use_lowpass_filter, "Use Low-Pass Filter");
 
-            // Add the reset button. When clicked, it replaces the current settings
+            // Add the global reset button. When clicked, it replaces all current settings
             // with a new instance of the default settings.
-            if ui.button("Reset to Defaults").clicked() {
+            if ui.button("Reset All to Defaults").clicked() {
                 *settings = AppSettings::default();
             }
 
@@ -207,8 +236,8 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
 
     // 3. Set up the native window options for our GUI control panel.
     let native_options = eframe::NativeOptions {
-        // Increased height to fit the new smoothing slider comfortably.
-        viewport: egui::ViewportBuilder::default().with_inner_size([440.0, 200.0]),
+        // Increased width to fit the new reset buttons comfortably.
+        viewport: egui::ViewportBuilder::default().with_inner_size([480.0, 210.0]),
         ..Default::default()
     };
 
