@@ -1,7 +1,13 @@
 [package]
-name = "subwoofer"
-version = "0.1.0"
+name = "AudioToVibrations"
+version = "1.0.4"
 edition = "2021"
+
+[profile.release]
+opt-level = 0          # Use a slightly less aggressive optimization level (default is 3)
+lto = true            # Link-Time Optimization
+codegen-units = 1      # Can sometimes help with stability at the cost of compile time
+panic = "unwind"       # Ensure panics are caught and can be reported (this is default but good to be explicit)
 
 [dependencies]
 anyhow = "1.0"
