@@ -30,6 +30,8 @@ Close and Reopen your Terminal/PowerShell: After installing Rust, the changes to
 
 Then try running ```cargo run``` again in your project directory. (The first time it runs it will download the necessary dependencies)
 
+(While downloading dependencies you may get the error "The process cannot access the file because it is being used by another process. (os error 32)" Simply close and reopen the console terminal and type ```cargo run``` again)
+
 It will ask you to select an audio device in the GUI and to confirm it.
 
 Once you select a device, the audio visualizer and control panel will open.
