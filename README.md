@@ -2,7 +2,7 @@
 This is based on: https://github.com/abstract-creations/subwoofer
 
 # Description
-Converts desktop audio (or any audio device) into vibration commands for sex toys through initface in real time.
+Converts desktop audio (or any audio device) into vibration commands for sex toys through initface in realtime.
 
 Alternative to funscripts for vibrators.
 
@@ -12,7 +12,7 @@ Download the latest release from the releases tab on the right.
 2. Double click AudioToVibrations.exe
 3. Select and confirm an audio device. The audio visualizer, debug window and control panel will open after.
 4. The AudioToVibration app should automatically connect with initface. It will display debug messages in the debug window.
-6. You can now use the control panel to edit settings in real time. The effect of the settings will be shown in the Live Audio View.
+6. You can now use the control panel to edit settings in realtime. The effect of the settings will be shown in the Live Audio View.
 
 # Usage Guide (For Running Rust Script Directly)
 Clone and Extract this repo. (Download and extract the zip file)
