@@ -4,6 +4,8 @@ This is based on: https://github.com/abstract-creations/subwoofer
 # Description
 Converts desktop audio (or any audio device) into vibration commands for sex toys through initface.
 
+Alternative to funscripts for vibrators.
+
 # Usage Guide (For executable build)
 Download the latest release from the releases tab on the right.
 1. Run initface and start the server
