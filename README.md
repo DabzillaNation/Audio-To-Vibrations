@@ -22,13 +22,13 @@ Close and Reopen your Terminal/PowerShell: After installing Rust, the changes to
 
 Then try running ```cargo run``` again in your project directory. (The first time it runs it will download the necessary dependencies)
 
-It will ask you to select an audio device in the console by typing a number. (For example, type 1 and press enter)
+It will ask you to select an audio device in the GUI and to confirm it.
 
-Once you type in a number two windows should open up, the audio visualizer and control panel.
+Once you select a device, the audio visualizer, debug window and control panel will open.
 
 The visualizer just lets you see the audio waveform and you can edit various settings in realtime from the control panel.
 
-Open initface and start the server, you will see debug messages in the console letting you know it has connected to initface and with your device.
+Open initface and start the server, you will see debug messages in the console letting you know it has connected to initface and with your device. You can also open and start the initface server beforehand.
 
 # Added Features:
 - More seamless connection, continuously rescans for initface on connection loss
