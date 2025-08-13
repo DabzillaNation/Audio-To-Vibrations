@@ -1,3 +1,6 @@
+// This attribute ensures that a console window is created on Windows for debug messages.
+#![cfg_attr(windows, windows_subsystem = "console")]
+
 //==================================================================================
 //  IMPORTS (Dependencies)
 //
@@ -30,8 +33,7 @@ use eframe::egui;
 use lowpass_filter::lowpass_filter;
 // Standard library imports for handling errors, user input, and concurrency.
 use std::error::Error;
-use std::io::{stdin, BufRead};
-use std::sync::{Arc, Mutex, OnceLock}; // 'Arc', 'Mutex', and 'OnceLock' are crucial for safe multi-threading.
+use std::sync::{mpsc as std_mpsc, Arc, Mutex, OnceLock}; // 'Arc', 'Mutex', and 'OnceLock' are crucial for safe multi-threading.
 use std::time::Duration;
 // 'tokio' is an asynchronous runtime for Rust. We use it to handle networking (to Buttplug)
 // and timing without freezing the application.
@@ -207,6 +209,97 @@ impl eframe::App for ControlPanelApp {
     }
 }
 
+//==================================================================================
+//  GUI (AUDIO DEVICE SELECTOR) IMPLEMENTATION
+//
+//  This section defines the GUI window that prompts the user to select an audio device.
+//==================================================================================
+
+struct DeviceSelectorApp {
+    devices: Vec<(String, Device)>,
+    selected_device_index: Option<usize>,
+    // This 'sender' will pass the chosen device from the GUI thread back to the main thread.
+    sender: std_mpsc::Sender<Device>,
+}
+
+impl DeviceSelectorApp {
+    /// Creates a new instance of the device selector GUI.
+    fn new(sender: std_mpsc::Sender<Device>) -> Self {
+        Self {
+            devices: list_output_devs(), // Populate the list of devices.
+            selected_device_index: None,
+            sender,
+        }
+    }
+}
+
+impl eframe::App for DeviceSelectorApp {
+    /// This update function draws the device selection window.
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading("Select an Audio Device");
+            ui.separator();
+            ui.label("Please choose the audio output device you want to monitor:");
+
+            // Determine the text for the combo box based on the current selection.
+            let selected_text = self.selected_device_index
+                .and_then(|index| self.devices.get(index))
+                .map(|(name, _)| name.clone())
+                .unwrap_or_else(|| "Click to select...".to_string());
+
+            // A Combo Box provides a nice dropdown menu for device selection.
+            egui::ComboBox::from_label("Audio Device")
+                .selected_text(selected_text)
+                .show_ui(ui, |ui| {
+                    for (i, (name, _device)) in self.devices.iter().enumerate() {
+                        ui.selectable_value(&mut self.selected_device_index, Some(i), name);
+                    }
+                });
+
+            ui.add_space(10.0);
+
+            // The confirm button is only enabled if a device has been selected.
+            ui.add_enabled_ui(self.selected_device_index.is_some(), |ui| {
+                 if ui.button("Confirm and Start").clicked() {
+                    // Use take() to get the index and set the Option to None.
+                    // This prevents the logic from running twice if the UI redraws before closing.
+                    if let Some(index) = self.selected_device_index.take() {
+                        // Move the selected device out of the vector.
+                        let (_, device) = self.devices.remove(index);
+                        self.sender.send(device).expect("Failed to send device");
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                }
+            });
+
+            ui.separator();
+
+            ui.label("Reminder: Open initface and start the server to connect to devices.");
+        });
+    }
+}
+
+/// This function launches the device selection GUI and waits until the user makes a choice.
+fn select_device_gui() -> Result<Device, Box<dyn Error>> {
+    // We use a standard (blocking) channel here because the main thread will wait for the GUI.
+    let (tx, rx) = std_mpsc::channel();
+
+    let native_options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default().with_inner_size([400.0, 180.0]),
+        ..Default::default()
+    };
+
+    // Run the device selector GUI. This blocks the main thread until the GUI window is closed.
+    eframe::run_native(
+        "Select Audio Device",
+        native_options,
+        Box::new(move |_cc| Ok(Box::new(DeviceSelectorApp::new(tx)))),
+    )?;
+
+    // Wait to receive the device from the GUI thread.
+    // If the user closes the window without confirming, `recv` will return an error.
+    rx.recv().map_err(|e| e.into())
+}
 
 //==================================================================================
 //  MAIN FUNCTION
@@ -215,6 +308,16 @@ impl eframe::App for ControlPanelApp {
 //==================================================================================
 
 fn main() -> std::result::Result<(), Box<dyn Error>> {
+    // Run device selection GUI first.
+    // The program will not proceed until a device is selected or the window is closed.
+    let selected_device = match select_device_gui() {
+        Ok(device) => device,
+        Err(_) => {
+            println!("[Info] No device selected. Exiting program.");
+            return Ok(()); // Exit gracefully if the selection window was closed by the user.
+        }
+    };
+
     // 1. Create the application settings inside the Arc/Mutex for thread-safe sharing.
     let settings = Arc::new(Mutex::new(AppSettings::default()));
     // Create a "clone" of the Arc pointer to pass to the vibration logic thread.
@@ -228,7 +331,8 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
         let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
         // Block the new thread until our async vibration logic completes or errors.
         rt.block_on(async {
-            if let Err(e) = run_vibration_logic(settings_clone).await {
+            // Pass ownership of the device chosen by the user into the main logic function.
+            if let Err(e) = run_vibration_logic(settings_clone, selected_device).await {
                 eprintln!("Vibration logic failed: {}", e);
             }
         });
@@ -236,15 +340,16 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
 
     // 3. Set up the native window options for our GUI control panel.
     let native_options = eframe::NativeOptions {
-        // Increased width to fit the new reset buttons comfortably.
-        viewport: egui::ViewportBuilder::default().with_inner_size([480.0, 210.0]),
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([480.0, 210.0])
+            .with_always_on_top(),
         ..Default::default()
     };
 
     // 4. Run the eframe GUI application. This function takes over the main thread.
     // It passes the original `settings` Arc to the GUI.
     eframe::run_native(
-        "Subwoofer Control Panel",
+        "AudioToVibrations Control Panel",
         native_options,
         Box::new(|_cc| Ok(Box::new(ControlPanelApp::new(settings)))),
     )?;
@@ -281,7 +386,7 @@ fn audio_transform_fn(direct_values: &[f32], sampling_rate: f32) -> Vec<f32> {
         lowpass_filter(&mut processed_values, sampling_rate, 80.0); // 80.0 Hz is a good bass cutoff.
     }
 
-    // --- MODIFIED: ASYMMETRIC SMOOTHING LOGIC (FAST ATTACK, SLOW DECAY) ---
+    // --- ASYMMETRIC SMOOTHING LOGIC (FAST ATTACK, SLOW DECAY) ---
     // We check if smoothing_ms is meaningfully greater than zero to avoid division by zero
     // and to disable smoothing when the user sets the slider to 0.
     if smoothing_ms > 1.0 {
@@ -355,7 +460,7 @@ fn audio_transform_fn(direct_values: &[f32], sampling_rate: f32) -> Vec<f32> {
 //  This async function runs in the background and handles everything related to
 //  audio capture, Buttplug connection, and sending vibration commands.
 //==================================================================================
-async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>) -> Result<()> {
+async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>, audio_device: Device) -> Result<()> {
     // 1. Create a "Multi-Producer, Single-Consumer" (MPSC) channel.
     // The audio callback (`tx`) is the producer, and the loop below (`rx`) is the consumer.
     let (tx, mut rx) = mpsc::channel::<f64>(SAMPLE_LIMIT);
@@ -370,10 +475,9 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>) -> Result<()> {
         panic!("AUDIO_STATE was already initialized");
     }
 
-    // 3. Set up the audio capture.
-    let default_out_dev = select_output_dev(); // Prompts user to select an audio device.
-    let default_out_config = default_out_dev.default_output_config().unwrap().config();
-    println!("[Audio] Using audio device: {}", default_out_dev.name()?);
+    // 3. Set up the audio capture using the device chosen from the GUI.
+    let default_out_config = audio_device.default_output_config().unwrap().config();
+    println!("[Audio] Using audio device: {}", audio_device.name()?);
 
     // Spawn another async task specifically for the audio visualizer window.
     // This lets it run independently without blocking our Buttplug logic.
@@ -383,7 +487,8 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>) -> Result<()> {
             None, None, None, None,
             "time (seconds)",
             "Amplitude (After Processing)",
-            AudioDevAndCfg::new(Some(default_out_dev), Some(default_out_config)),
+            // Pass ownership of the selected device and its config to the visualizer.
+            AudioDevAndCfg::new(Some(audio_device), Some(default_out_config)),
             TransformFn::Basic(audio_transform_fn), // Pass our processing function here.
         );
     });
@@ -394,7 +499,7 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>) -> Result<()> {
         println!("[Buttplug] Attempting to connect to server at ws://localhost:12345...");
 
         // Create a Buttplug client and try to connect to the server (e.g., Intiface Desktop).
-        let client = ButtplugClient::new("subwoofer");
+        let client = ButtplugClient::new("AudioToVibrations Client");
         let connector = new_json_ws_client_connector("ws://localhost:12345/buttplug");
 
         if let Err(e) = client.connect(connector).await {
@@ -408,7 +513,6 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>) -> Result<()> {
         time::sleep(Duration::from_secs(2)).await; // Scan for a couple of seconds.
         client.stop_scanning().await?;
 
-        // ******** THE FIX IS HERE ********
         // We must first store the list of devices in a variable (`all_devices`).
         // This ensures the list itself lives long enough for us to borrow from it.
         let all_devices = client.devices();
@@ -422,7 +526,6 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>) -> Result<()> {
             time::sleep(Duration::from_secs(10)).await;
             continue 'reconnection_loop;
         };
-        // ******** END OF FIX ********
 
         println!("[Buttplug] Device connected: {}", client_device.name());
         println!("[Vibration] Starting vibration loop...");
@@ -469,13 +572,14 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>) -> Result<()> {
 
 
 //==================================================================================
-//  HELPER FUNCTIONS (UNCHANGED)
+//  HELPER FUNCTIONS
 //
-//  These functions assist with audio device selection.
+//  This function assists with finding audio devices for the GUI selector.
 //==================================================================================
 
 /// Returns a list of all available audio output devices on the system.
-pub fn list_output_devs() -> Vec<(String, cpal::Device)> {
+/// This is called by the device selector GUI.
+pub fn list_output_devs() -> Vec<(String, Device)> {
     let host = cpal::default_host();
     type DeviceName = String;
     let mut devs: Vec<(DeviceName, Device)> = host
@@ -490,30 +594,4 @@ pub fn list_output_devs() -> Vec<(String, cpal::Device)> {
         .collect();
     devs.sort_by(|(n1, _), (n2, _)| n1.cmp(n2));
     devs
-}
-
-/// Prompts the user to select an audio device from a list printed to the console.
-fn select_output_dev() -> cpal::Device {
-    let mut devs = list_output_devs();
-    assert!(!devs.is_empty(), "no output devices found!");
-    if devs.len() == 1 {
-        return devs.remove(0).1;
-    }
-    println!("Please select the audio device to monitor:");
-    devs.iter().enumerate().for_each(|(i, (name, _))| {
-        println!("  [{}] {}", i, name);
-    });
-    loop {
-        let mut input = String::new();
-        if stdin().lock().read_line(&mut input).is_err() {
-            println!("Failed to read line, please try again.");
-            continue;
-        }
-        if let Ok(index) = input.trim().parse::<usize>() {
-            if index < devs.len() {
-                return devs.remove(index).1;
-            }
-        }
-        println!("Invalid input. Please enter a number from the list.");
-    }
 }
