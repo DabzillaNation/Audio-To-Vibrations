@@ -4,7 +4,16 @@ This is based on: https://github.com/abstract-creations/subwoofer
 # Description
 It converts desktop audio into vibration commands for sex toys through initface.
 
-# Usage Guide
+# Usage Guide (For executable build)
+Download the latest release from the releases tab on the right.
+1. Double click the exe and follow the on screen instructions
+2. Select an audio device
+3. Run initface and start the server
+4. They should automatically connect together
+5. Once you select a device, the audio visualizer, debug window and control panel will open.
+6. You can use the control panel to edit settings in real time
+
+# Usage Guide (For Running Rust Script)
 Clone and Extract this repo. (Download and extract the zip file)
 
 Navigate to the project directory: Open your terminal or command prompt and change your current directory to the root of your Rust project (the directory containing Cargo.toml, Cargo.lock, and the src folder).
@@ -24,11 +33,11 @@ Then try running ```cargo run``` again in your project directory. (The first tim
 
 It will ask you to select an audio device in the GUI and to confirm it.
 
-Once you select a device, the audio visualizer, debug window and control panel will open.
+Once you select a device, the audio visualizer and control panel will open.
 
 The visualizer just lets you see the audio waveform and you can edit various settings in realtime from the control panel.
 
-Open initface and start the server, you will see debug messages in the console letting you know it has connected to initface and with your device. You can also open and start the initface server beforehand.
+Open initface and start the server, you will see debug messages in the console letting you know it has connected to initface and with your device.
 
 # Added Features:
 - More seamless connection, continuously rescans for initface on connection loss
