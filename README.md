@@ -6,12 +6,11 @@ It converts desktop audio into vibration commands for sex toys through initface.
 
 # Usage Guide (For executable build)
 Download the latest release from the releases tab on the right.
-1. Double click the exe and follow the on screen instructions
-2. Select and confirm an audio device
-3. Run initface and start the server
-4. The AudioToVibration app should automatically connect with initface
-5. Once you select a device, the audio visualizer, debug window and control panel will open.
-6. You can use the control panel to edit settings in real time
+1. Run initface and start the server
+2. Double click AudioToVibrations.exe and follow the on screen instructions
+3. Select and confirm an audio device. The audio visualizer, debug window and control panel will open.
+4. The AudioToVibration app should automatically connect with initface displaying debug messages in the debug window.
+6. You can now use the control panel to edit settings in real time
 
 # Usage Guide (For Running Rust Script)
 Clone and Extract this repo. (Download and extract the zip file)
