@@ -12,7 +12,7 @@ Download the latest release from the releases tab on the right.
 4. The AudioToVibration app should automatically connect with initface displaying debug messages in the debug window.
 6. You can now use the control panel to edit settings in real time
 
-# Usage Guide (For Running Rust Script)
+# Usage Guide (For Running Rust Script Directly)
 Clone and Extract this repo. (Download and extract the zip file)
 
 Navigate to the project directory: Open your terminal or command prompt and change your current directory to the root of your Rust project (the directory containing Cargo.toml, Cargo.lock, and the src folder).
