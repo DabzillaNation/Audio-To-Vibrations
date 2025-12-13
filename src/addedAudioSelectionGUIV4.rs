@@ -156,148 +156,39 @@ impl eframe::App for ControlPanelApp {
             // Create a single instance of the default settings to compare against.
             let default_settings = AppSettings::default();
 
-            // We use a horizontal layout for each control.
-            // To place buttons "left and right of the number fields", we separate the slider
-            // from its value display and reconstruct the row manually.
-            
-            // --- Vibration Intensity ---
+            // We use a horizontal layout to place a slider and a reset button on the same line.
             ui.horizontal(|ui| {
-                // Reset Button
+                ui.style_mut().spacing.slider_width = 250.0; // Set slider width inside the layout
                 if ui.button("🔄").on_hover_text("Reset Intensity").clicked() {
                     settings.intensity = default_settings.intensity;
                 }
-                
-                // Slider (Track Only) - .show_value(false) hides the number and text
-                ui.style_mut().spacing.slider_width = 250.0; // Set slider width inside the layout
-                ui.add(egui::Slider::new(&mut settings.intensity, 0.0..=1000.0).show_value(false));
-
-                // --- REDUCE SPACING ---
-                // Reduce the gap between items for the buttons and text field
-                ui.style_mut().spacing.item_spacing.x = 4.0;
-
-                // Minus button (Left of number)
-                if ui.add(egui::Button::new("-").min_size(egui::vec2(20.0, 0.0))).clicked() {
-                    settings.intensity = (settings.intensity - 1.0).max(0.0);
-                }
-
-                // Number Field (DragValue)
-                ui.add_sized([55.0, 18.0], egui::DragValue::new(&mut settings.intensity).speed(1.0).range(0.0..=1000.0));
-
-                ui.style_mut().spacing.item_spacing.x = 8.0; // Reset spacing to default
-
-                // Plus button (Right of number)
-                if ui.add(egui::Button::new("+").min_size(egui::vec2(20.0, 0.0))).clicked() {
-                    settings.intensity += 1.0;
-                }
-
-                // Label
-                ui.label("Vibration Intensity");
+                ui.add(egui::Slider::new(&mut settings.intensity, 0.0..=1000.0).text("Vibration Intensity"));
             });
 
-            // --- Instruction Delay ---
             ui.horizontal(|ui| {
-                // Reset Button
+                ui.style_mut().spacing.slider_width = 250.0;
                 if ui.button("🔄").on_hover_text("Reset Delay").clicked() {
                     settings.delay_ms = default_settings.delay_ms;
                 }
-                
-                // Slider (Track Only)
-                ui.style_mut().spacing.slider_width = 250.0; // Set slider width inside the layout
-                ui.add(egui::Slider::new(&mut settings.delay_ms, 5..=200).show_value(false));
+                ui.add(egui::Slider::new(&mut settings.delay_ms, 5..=200).text("Instruction Delay (ms)").suffix(" ms"));
 
-                // --- REDUCE SPACING ---
-                // Reduce the gap between items for the buttons and text field
-                ui.style_mut().spacing.item_spacing.x = 4.0;
-
-                // Minus button
-                if ui.add(egui::Button::new("-").min_size(egui::vec2(20.0, 0.0))).clicked() {
-                     if settings.delay_ms >= 10 {
-                        settings.delay_ms -= 5;
-                    } else {
-                        settings.delay_ms = 5;
-                    }
-                }
-
-                // Number Field
-                ui.add_sized([55.0, 18.0], egui::DragValue::new(&mut settings.delay_ms).speed(1.0).range(5..=200).suffix(" ms"));
-
-                ui.style_mut().spacing.item_spacing.x = 8.0; // Reset spacing to default
-
-                // Plus button
-                if ui.add(egui::Button::new("+").min_size(egui::vec2(20.0, 0.0))).clicked() {
-                    settings.delay_ms += 5;
-                }
-
-                // Label
-                ui.label("Instruction Delay (ms)");
             });
 
-            // --- Minimum Threshold ---
             ui.horizontal(|ui| {
-                // Reset Button
+                ui.style_mut().spacing.slider_width = 250.0;
                 if ui.button("🔄").on_hover_text("Reset Threshold").clicked() {
                     settings.threshold = default_settings.threshold;
                 }
-                
-                // Slider (Track Only)
-                ui.style_mut().spacing.slider_width = 250.0; // Set slider width inside the layout
-                ui.add(egui::Slider::new(&mut settings.threshold, 0.0..=1.0).show_value(false));
+                ui.add(egui::Slider::new(&mut settings.threshold, 0.0..=1.0).text("Minimum Threshold"));
 
-                // --- REDUCE SPACING ---
-                // Reduce the gap between items for the buttons and text field
-                ui.style_mut().spacing.item_spacing.x = 4.0;
-                
-                // Minus button
-                if ui.add(egui::Button::new("-").min_size(egui::vec2(20.0, 0.0))).clicked() {
-                    settings.threshold = (settings.threshold - 0.005).max(0.0);
-                }
-
-                // Number Field
-                ui.add_sized([55.0, 18.0], egui::DragValue::new(&mut settings.threshold).speed(0.005).range(0.0..=1.0));
-
-                ui.style_mut().spacing.item_spacing.x = 8.0; // Reset spacing to default
-                
-                // Plus button
-                if ui.add(egui::Button::new("+").min_size(egui::vec2(20.0, 0.0))).clicked() {
-                    settings.threshold = (settings.threshold + 0.005).min(1.0);
-                }
-
-                // Label
-                ui.label("Minimum Threshold");
             });
             
-            // --- Smooth Decay Time ---
             ui.horizontal(|ui| {
-                // Reset Button
+                ui.style_mut().spacing.slider_width = 250.0;
                 if ui.button("🔄").on_hover_text("Reset Decay Time").clicked() {
                     settings.smoothing_ms = default_settings.smoothing_ms;
                 }
-                
-                // Slider (Track Only)
-                ui.style_mut().spacing.slider_width = 250.0; // Set slider width inside the layout
-                ui.add(egui::Slider::new(&mut settings.smoothing_ms, 0.0..=2000.0).show_value(false));
-
-                // --- REDUCE SPACING ---
-                // Reduce the gap between items for the buttons and text field
-                ui.style_mut().spacing.item_spacing.x = 4.0;
-                
-                // Minus button
-                if ui.add(egui::Button::new("-").min_size(egui::vec2(20.0, 0.0))).clicked() {
-                    settings.smoothing_ms = (settings.smoothing_ms - 1.0).max(0.0);
-                }
-
-                // Number Field
-                ui.add_sized([55.0, 18.0], egui::DragValue::new(&mut settings.smoothing_ms).speed(1.0).range(0.0..=2000.0).suffix(" ms"));
-
-                ui.style_mut().spacing.item_spacing.x = 8.0; // Reset spacing to default
-
-                // Plus button
-                if ui.add(egui::Button::new("+").min_size(egui::vec2(20.0, 0.0))).clicked() {
-                    settings.smoothing_ms += 1.0;
-                }
-
-                // Label
-                ui.label("Smooth Decay Time");
+                ui.add(egui::Slider::new(&mut settings.smoothing_ms, 0.0..=2000.0).text("Smooth Decay Time").suffix(" ms"));
             });
             
             ui.separator();
@@ -450,7 +341,7 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
     // 3. Set up the native window options for our GUI control panel.
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([535.0, 210.0])
+            .with_inner_size([480.0, 210.0])
             .with_always_on_top(),
         ..Default::default()
     };
