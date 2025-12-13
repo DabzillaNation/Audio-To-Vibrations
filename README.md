@@ -53,10 +53,11 @@ Open initface and start the server, you will see debug messages in the console l
   - slider for audio smoothing value
   - toggle for low pass filter
   - Button to reset settings to defaults
+  - Buttons to increment/decrement values quickly
 
 <img width="395" height="206" alt="image" src="https://github.com/user-attachments/assets/06e0ab62-2faf-46b7-9eb6-69468e5c227b" />
 
-<img width="474" height="235" alt="image" src="https://github.com/user-attachments/assets/60f336df-1f49-4385-92d5-5422fb78d590" />
+<img width="533" height="242" alt="image" src="https://github.com/user-attachments/assets/115faa3f-bf1f-493a-84b0-8f2cb03ebe00" />
 
 <img width="1279" height="742" alt="image" src="https://github.com/user-attachments/assets/08ecc4ac-2066-4abe-ba8a-abc6af6dcbd7" />
 
