@@ -54,10 +54,11 @@ Open initface and start the server, you will see debug messages in the console l
   - toggle for low pass filter
   - Button to reset settings to defaults
   - Buttons to increment/decrement values quickly
+  - Added multi-device support
 
 <img width="395" height="206" alt="image" src="https://github.com/user-attachments/assets/06e0ab62-2faf-46b7-9eb6-69468e5c227b" />
 
-<img width="533" height="242" alt="image" src="https://github.com/user-attachments/assets/115faa3f-bf1f-493a-84b0-8f2cb03ebe00" />
+<img width="521" height="271" alt="image" src="https://github.com/user-attachments/assets/3c27c7e4-5fd7-4098-aa2c-729710c780de" />
 
 <img width="1279" height="742" alt="image" src="https://github.com/user-attachments/assets/08ecc4ac-2066-4abe-ba8a-abc6af6dcbd7" />
 
