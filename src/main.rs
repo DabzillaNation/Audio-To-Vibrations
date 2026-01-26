@@ -104,6 +104,8 @@ struct AppSettings {
     target_device: String,
     /// A list of names of devices currently discovered by the Buttplug client.
     available_devices: Vec<String>,
+    /// A flag to signal the vibration thread to perform a new device scan.
+    refresh_requested: bool,
 }
 
 /// This `impl` block provides a `default` constructor for `AppSettings`.
@@ -118,6 +120,7 @@ impl Default for AppSettings {
             smoothing_ms: 0.0,      // Default to a 0ms decay time.
             target_device: ALL_DEVICES_LABEL.to_string(),
             available_devices: Vec::new(),
+            refresh_requested: false,
         }
     }
 }
@@ -182,6 +185,11 @@ impl eframe::App for ControlPanelApp {
                             ui.selectable_value(&mut settings.target_device, device_name.clone(), &device_name);
                         }
                     });
+
+                // Refresh Button: Sets a flag that the background thread will notice.
+                if ui.button("🔄").on_hover_text("Re-scan for devices").clicked() {
+                    settings.refresh_requested = true;
+                }
             });
             ui.add_space(8.0);
 
@@ -670,6 +678,30 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>, audio_device: De
 
         // 5. Inner operational loop. This runs as long as the device is connected.
         loop {
+            // --- RE-SCAN LOGIC ---
+            // Check if the GUI has requested a device refresh.
+            let refresh_needed = {
+                let mut s = settings.lock().unwrap();
+                if s.refresh_requested {
+                    s.refresh_requested = false; // Reset the flag.
+                    true
+                } else {
+                    false
+                }
+            };
+
+            if refresh_needed {
+                println!("[Buttplug] Refreshing device list...");
+                let _ = client.start_scanning().await;
+                time::sleep(Duration::from_secs(2)).await;
+                let _ = client.stop_scanning().await;
+                {
+                    let mut s = settings.lock().unwrap();
+                    s.available_devices = client.devices().iter().map(|d| d.name().clone()).collect();
+                }
+                println!("[Buttplug] Refresh complete. Found {} device(s).", client.devices().len());
+            }
+
             let mut collected_values: Vec<f64> = Vec::with_capacity(SAMPLE_LIMIT);
             // Wait to receive a batch of values from the audio thread.
             // If `recv_many` returns 0, the channel was closed, meaning the app is shutting down.
