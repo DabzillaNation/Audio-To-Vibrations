@@ -54,7 +54,7 @@ Open initface and start the server, you will see debug messages in the console l
   - toggle for low pass filter
   - Buttons to reset settings to defaults
   - Buttons to increment/decrement values quickly
-  - Added multi-device support, select a specific target device to vibrate or vibrate all of them
+  - Added multi-device support: Select a specific device to vibrate or choose to vibrate all of them. You can also press the refresh button to scan for new devices.
 
 <img width="395" height="206" alt="image" src="https://github.com/user-attachments/assets/06e0ab62-2faf-46b7-9eb6-69468e5c227b" />
 
