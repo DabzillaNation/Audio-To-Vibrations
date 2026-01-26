@@ -52,9 +52,9 @@ Open initface and start the server, you will see debug messages in the console l
   - slider for threshold cutoff value
   - slider for audio smoothing value
   - toggle for low pass filter
-  - Button to reset settings to defaults
+  - Buttons to reset settings to defaults
   - Buttons to increment/decrement values quickly
-  - Added multi-device support
+  - Added multi-device support, select a specific target device to vibrate or vibrate all of them
 
 <img width="395" height="206" alt="image" src="https://github.com/user-attachments/assets/06e0ab62-2faf-46b7-9eb6-69468e5c227b" />
 
