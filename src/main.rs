@@ -48,6 +48,7 @@ use tokio::{sync::mpsc, time};
 /// We collect audio samples in batches to average them out. This prevents the vibration
 /// from being too jerky. This constant defines the maximum number of samples in a batch.
 const SAMPLE_LIMIT: usize = 16;
+const ALL_DEVICES_LABEL: &str = "All Devices";
 
 //==================================================================================
 //  GLOBAL STATE & STATIC VARIABLES
@@ -99,6 +100,10 @@ struct AppSettings {
     threshold: f64,
     use_lowpass_filter: bool, // Toggle to enable or disable the bass filter.
     smoothing_ms: f64,        // The decay time in milliseconds.
+    /// The name of the device currently targeted for vibration.
+    target_device: String,
+    /// A list of names of devices currently discovered by the Buttplug client.
+    available_devices: Vec<String>,
 }
 
 /// This `impl` block provides a `default` constructor for `AppSettings`.
@@ -111,6 +116,8 @@ impl Default for AppSettings {
             threshold: 0.005,
             use_lowpass_filter: true, // Default to using the filter.
             smoothing_ms: 0.0,      // Default to a 0ms decay time.
+            target_device: ALL_DEVICES_LABEL.to_string(),
+            available_devices: Vec::new(),
         }
     }
 }
@@ -155,6 +162,28 @@ impl eframe::App for ControlPanelApp {
 
             // Create a single instance of the default settings to compare against.
             let default_settings = AppSettings::default();
+
+            // FIX: Clone the list of devices so we can iterate over them without 
+            // blocking the mutable access needed to change 'target_device'.
+            let device_list = settings.available_devices.clone();
+
+            // --- Device Selection Dropdown ---
+            ui.horizontal(|ui| {
+                ui.label("Target Device:");
+                egui::ComboBox::from_id_source("device_selector")
+                    .selected_text(&settings.target_device)
+                    .width(250.0)
+                    .show_ui(ui, |ui| {
+                        // Always provide the option to vibrate everything.
+                        ui.selectable_value(&mut settings.target_device, ALL_DEVICES_LABEL.to_string(), ALL_DEVICES_LABEL);
+                        
+                        // List individual devices found during the scan.
+                        for device_name in device_list {
+                            ui.selectable_value(&mut settings.target_device, device_name.clone(), &device_name);
+                        }
+                    });
+            });
+            ui.add_space(8.0);
 
             // We use a horizontal layout for each control.
             // To place buttons "left and right of the number fields", we separate the slider
@@ -450,7 +479,7 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
     // 3. Set up the native window options for our GUI control panel.
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([535.0, 210.0])
+            .with_inner_size([535.0, 240.0]) // Increased height slightly to accommodate the new dropdown
             .with_always_on_top(),
         ..Default::default()
     };
@@ -622,21 +651,21 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>, audio_device: De
         time::sleep(Duration::from_secs(2)).await; // Scan for a couple of seconds.
         client.stop_scanning().await?;
 
-        // We must first store the list of devices in a variable (`all_devices`).
-        // This ensures the list itself lives long enough for us to borrow from it.
-        let all_devices = client.devices();
+        // After scanning, update the shared available_devices list so the GUI can see them.
+        {
+            let mut s = settings.lock().unwrap();
+            s.available_devices = client.devices().iter().map(|d| d.name().clone()).collect();
+        }
 
-        // Now, we can safely get the first item from `all_devices`. `client_device` will
-        // be a reference to an item inside `all_devices`, which is perfectly fine
-        // because `all_devices` is still in scope.
-        let Some(client_device) = all_devices.first() else {
-            eprintln!("[Buttplug] No device found. Retrying in 10 seconds...");
+        // Check if we actually found anything.
+        if client.devices().is_empty() {
+            eprintln!("[Buttplug] No devices found. Retrying in 10 seconds...");
             let _ = client.disconnect().await;
             time::sleep(Duration::from_secs(10)).await;
             continue 'reconnection_loop;
         };
 
-        println!("[Buttplug] Device connected: {}", client_device.name());
+        println!("[Buttplug] {} device(s) found.", client.devices().len());
         println!("[Vibration] Starting vibration loop...");
 
         // 5. Inner operational loop. This runs as long as the device is connected.
@@ -661,15 +690,34 @@ async fn run_vibration_logic(settings: Arc<Mutex<AppSettings>>, audio_device: De
             // Clamp the value between 0.0 and 1.0, as required by the Buttplug protocol.
             let computed_intensity = f64::min(mean_value, 1.0);
 
-            // Send the final vibrate command to the device.
-            if let Err(e) = client_device.vibrate(&ScalarValueCommand::ScalarValue(computed_intensity)).await {
-                eprintln!("[Buttplug] Vibrate command failed: {}. Connection lost.", e);
-                break; // Break the inner loop to trigger reconnection.
+            // Get current target device and delay from settings.
+            let (target, delay) = {
+                let s = settings.lock().unwrap();
+                (s.target_device.clone(), s.delay_ms)
+            };
+
+            // Iterate over ALL connected devices.
+            let all_connected = client.devices();
+            let mut command_failed = false;
+
+            for device in all_connected {
+                // If "All Devices" is selected, or if the specific device name matches the selection.
+                // FIX: Added &target to match the return type of device.name().
+                if target == ALL_DEVICES_LABEL || device.name() == &target {
+                    if let Err(e) = device.vibrate(&ScalarValueCommand::ScalarValue(computed_intensity)).await {
+                        eprintln!("[Buttplug] Vibrate command failed for {}: {}.", device.name(), e);
+                        command_failed = true;
+                    }
+                }
+            }
+
+            // If a command failed, we assume a connection issue and restart the client.
+            if command_failed && !client.connected() {
+                break; // Break inner loop to trigger reconnection.
             }
 
             // Wait for a short duration, determined by the user's "Delay" setting.
             // This acts as a rate-limiter to not flood the device with commands.
-            let delay = { settings.lock().unwrap().delay_ms };
             time::sleep(Duration::from_millis(delay)).await;
         }
 
