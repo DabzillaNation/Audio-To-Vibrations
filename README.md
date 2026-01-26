@@ -8,6 +8,7 @@ Alternative to funscripts for vibrators.
 
 # Usage Guide (For executable build)
 Download the latest release from the releases tab on the right.
+0. Connect your device to initface
 1. Run initface and start the server
 2. Double click AudioToVibrations.exe
 3. Select and confirm an audio device. The audio visualizer, debug window and control panel will open after.
