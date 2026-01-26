@@ -8,11 +8,11 @@ Alternative to funscripts for vibrators.
 
 # Usage Guide (For executable build)
 Download the latest release from the releases tab on the right.
-0. Connect your device to initface
-1. Run initface and start the server
-2. Double click AudioToVibrations.exe
-3. Select and confirm an audio device. The audio visualizer, debug window and control panel will open after.
-4. The AudioToVibration app should automatically connect with initface. It will display debug messages in the debug window.
+1. Connect your device to initface
+2. Start the initface server
+3. Double click AudioToVibrations.exe
+4. Select and confirm an audio device. The audio visualizer, debug window and control panel will open after.
+5. The AudioToVibration app should automatically connect with initface. It will display debug messages in the debug window.
 6. You can now use the control panel to edit settings in realtime. The effect of the settings will be shown in the Live Audio View.
 
 # Usage Guide (For Running Rust Script Directly)
